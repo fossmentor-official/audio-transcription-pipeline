@@ -1,3 +1,5 @@
+"""Task 2: Transcribe spoken audio into text using OpenAI Whisper."""
+
 from audio_loader import AudioFileLoader
 
 

@@ -1,3 +1,5 @@
+"""Task 3: Transcribe spoken audio into text with timestamps."""
+
 from audio_loader import AudioFileLoader
 from speech_transcriber import SpeechTranscriber
 
