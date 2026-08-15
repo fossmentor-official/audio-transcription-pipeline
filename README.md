@@ -33,6 +33,7 @@ audio-transcription-pipeline/
 ├── audio_loader.py
 ├── speech_transcriber.py
 ├── timestamped_transcriber.py
+├── env.example
 ├── requirements.txt
 ├── README.md
 ├── templates/
@@ -101,7 +102,21 @@ Uploads return immediately to a job page. Transcription continues in background 
 
 The Whisper model is loaded lazily on the first transcription request and reused afterward. The first run may download the model and take longer.
 
-Default model is `tiny` for faster local demos. Switch in `app.py` by setting `WHISPER_MODEL` to `"turbo"` (higher quality) or `"tiny"` (faster).
+Default model is `tiny` for faster local demos. Switch models in `.env.loc`:
+
+```bash
+WHISPER_MODEL=tiny
+# or
+WHISPER_MODEL=turbo
+```
+
+If you do not have a local settings file yet:
+
+```bash
+cp env.example .env.loc
+```
+
+`env.example` is committed to GitHub. `.env.loc` stays on your machine only (gitignored).
 
 Runtime transcription text and timestamps come from Whisper for the uploaded file. They are not hard-coded.
 

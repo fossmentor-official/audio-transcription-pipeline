@@ -11,3 +11,6 @@ dist/
 # Do not commit uploaded audio files
 uploads/*
 !uploads/.gitkeep
+
+# Local secrets / machine-specific settings
+.env.loc

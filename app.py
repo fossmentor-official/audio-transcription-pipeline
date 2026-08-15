@@ -3,28 +3,37 @@
 # TimestampedTranscriber.
 
 import copy
+import os
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import Lock, RLock
 from uuid import uuid4
 
+from dotenv import load_dotenv
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
 from werkzeug.utils import secure_filename
 
 from audio_loader import AudioFileLoader
 from timestamped_transcriber import TimestampedTranscriber
 
-UPLOAD_DIR = Path(__file__).parent / "uploads"
-ALLOWED = {".wav", ".mp3"}
-MAX_FILES = 10
+BASE_DIR = Path(__file__).resolve().parent
+# Local overrides live in .env.loc (create from env.example).
+load_dotenv(BASE_DIR / ".env.loc")
 
-# tiny is faster on CPU. Swap to turbo for better accuracy.
-WHISPER_MODEL = "tiny"
-# WHISPER_MODEL = "turbo"
+UPLOAD_DIR = BASE_DIR / os.getenv("UPLOAD_DIR", "uploads")
+ALLOWED = {
+    ext.strip().lower()
+    for ext in os.getenv("ALLOWED_EXTENSIONS", ".wav,.mp3").split(",")
+    if ext.strip()
+}
+MAX_FILES = int(os.getenv("MAX_FILES", "10"))
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", "2"))
+MAX_CONTENT_LENGTH_MB = int(os.getenv("MAX_CONTENT_LENGTH_MB", "100"))
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "tiny")
 
 app = Flask(__name__)
-app.secret_key = "dev-key"
-app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # total request size
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-key")
+app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH_MB * 1024 * 1024
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 # One shared Whisper model. RLock so get_transcriber() can run while
@@ -35,7 +44,7 @@ model_lock = RLock()
 # In-memory job store. Fine for a local demo; jobs disappear on restart.
 jobs = {}
 jobs_lock = Lock()
-pool = ThreadPoolExecutor(max_workers=2)
+pool = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
 
 def get_transcriber():
@@ -192,7 +201,7 @@ def job_api(job_id):
 
 @app.errorhandler(413)
 def too_large(_e):
-    flash("Upload is too large. Maximum total size is 100 MB.")
+    flash(f"Upload is too large. Maximum total size is {MAX_CONTENT_LENGTH_MB} MB.")
     return redirect(url_for("index")), 413
 
 
