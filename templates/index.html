@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Audio Transcription</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="container">
+    <h1>AI Audio Transcription</h1>
+    <p class="subtitle">
+      Upload one or more WAV/MP3 files. Transcription runs in the background
+      and results appear as each file finishes.
+    </p>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="flash-messages">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <form
+      class="upload-form"
+      action="{{ url_for('transcribe') }}"
+      method="post"
+      enctype="multipart/form-data"
+    >
+      <label class="file-label" for="audio_files">Choose Audio Files</label>
+      <input
+        id="audio_files"
+        type="file"
+        name="audio_files"
+        accept=".wav,.mp3,audio/wav,audio/mpeg"
+        multiple
+        required
+      >
+
+      <button class="button" type="submit">Transcribe Audio</button>
+    </form>
+  </main>
+</body>
+</html>

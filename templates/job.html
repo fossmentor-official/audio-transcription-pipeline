@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transcription Job — AI Audio Transcription</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="container wide">
+    <h1>AI Audio Transcription</h1>
+    <p class="subtitle">
+      Job status: <strong id="job-status">{{ job.status }}</strong>
+    </p>
+
+    <div id="files" class="file-results">
+      {% for item in job.files %}
+        <section class="file-card">
+          <div class="file-header">
+            <h2>{{ item.name }}</h2>
+            <span class="badge status-{{ item.status }}">{{ item.status }}</span>
+          </div>
+
+          {% if item.status == 'failed' %}
+            <p class="error-text">{{ item.error }}</p>
+          {% elif item.status == 'completed' %}
+            <h3>Full Transcription</h3>
+            <hr>
+            <p class="full-text">{{ item.full_text }}</p>
+
+            <h3>Timestamped Transcription</h3>
+            <hr>
+            <div class="segments">
+              {% for segment in item.segments %}
+                <article class="segment">
+                  <p class="timestamp">{{ segment.start }} → {{ segment.end }}</p>
+                  <p class="segment-text">{{ segment.text }}</p>
+                </article>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="pending-text">Waiting for transcription…</p>
+          {% endif %}
+        </section>
+      {% endfor %}
+    </div>
+
+    <a class="button secondary" href="{{ url_for('index') }}">Transcribe Another File</a>
+  </main>
+
+  <script>
+    const jobId = {{ job.id|tojson }};
+
+    function escapeHtml(value) {
+      const div = document.createElement("div");
+      div.textContent = value == null ? "" : String(value);
+      return div.innerHTML;
+    }
+
+    function fileHtml(item) {
+      let body = '<p class="pending-text">Waiting for transcription…</p>';
+
+      if (item.status === "failed") {
+        body = `<p class="error-text">${escapeHtml(item.error)}</p>`;
+      } else if (item.status === "completed") {
+        const stamps = (item.segments || []).map(function (seg) {
+          return (
+            '<article class="segment">' +
+            '<p class="timestamp">' + escapeHtml(seg.start) + " → " + escapeHtml(seg.end) + "</p>" +
+            '<p class="segment-text">' + escapeHtml(seg.text) + "</p>" +
+            "</article>"
+          );
+        }).join("");
+
+        body =
+          "<h3>Full Transcription</h3><hr>" +
+          '<p class="full-text">' + escapeHtml(item.full_text) + "</p>" +
+          "<h3>Timestamped Transcription</h3><hr>" +
+          '<div class="segments">' + stamps + "</div>";
+      }
+
+      return (
+        '<section class="file-card">' +
+        '<div class="file-header">' +
+        "<h2>" + escapeHtml(item.name) + "</h2>" +
+        '<span class="badge status-' + escapeHtml(item.status) + '">' + escapeHtml(item.status) + "</span>" +
+        "</div>" + body + "</section>"
+      );
+    }
+
+    function poll() {
+      fetch("/api/jobs/" + jobId)
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (job) {
+          if (!job) return;
+          document.getElementById("job-status").textContent = job.status;
+          document.getElementById("files").innerHTML = (job.files || []).map(fileHtml).join("");
+          if (job.status !== "completed") {
+            setTimeout(poll, 1500);
+          }
+        })
+        .catch(function () { setTimeout(poll, 2000); });
+    }
+
+    if ({{ job.status|tojson }} !== "completed") {
+      setTimeout(poll, 1500);
+    }
+  </script>
+</body>
+</html>
